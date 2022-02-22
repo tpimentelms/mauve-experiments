@@ -5,6 +5,7 @@ import torch
 
 import src.model_utils
 from src import utils, generation_utils as gen_utils
+from src.torch_utils import TransparentDataParallel
 import src.metrics
 
 if __name__ == '__main__':
@@ -33,6 +34,8 @@ if __name__ == '__main__':
     print(f'Using device: {device}')
 
     model, tokenizer = utils.get_model_and_tokenizer(model_name=args.model_name, device=device)
+    if torch.cuda.device_count() > 1:
+        model = TransparentDataParallel(model)
 
     if args.max_len is None:
         args.max_len = tokenizer.model_max_length
@@ -100,4 +103,3 @@ if __name__ == '__main__':
     else:  # use features from model
         feats = src.model_utils.featurize_sequential(model, samples_2)
         torch.save(feats, f'{folder_name}/feats_{name}.pt')
-

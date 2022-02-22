@@ -377,6 +377,8 @@ def batch_fn(iterable, n=1):
 def get_default_batch_size(model_name, device, beam_size=1):
     # heuristic to figure out max batch size for model based on GPU memory
     twelve_gigs = 11719409664
+    if torch.cuda.get_device_name(0) == 'A100':
+        seventy_two_gigs = twelve_gigs * 6
 
     if 'gpt2-large' in model_name:
         default_batch_size = 8
@@ -395,6 +397,13 @@ def get_default_batch_size(model_name, device, beam_size=1):
         mem = torch.cuda.get_device_properties(device).total_memory
         bsz = int(mem / twelve_gigs * max(1, default_batch_size / beam_size))
         bsz = max(1, bsz)
+
+        if torch.cuda.device_count() > 1:
+            bsz *= torch.cuda.device_count()
+
+        print('Using a batch size of %d' % bsz)
+        print('Running on %d GPUs: %s' % (torch.cuda.device_count(), torch.cuda.get_device_name(0)))
+
     return bsz
 
 def create_sample_fn(model, max_len,
