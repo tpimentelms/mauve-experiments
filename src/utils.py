@@ -29,6 +29,7 @@ def make_basic_parser():
     parser.add_argument('--seed', type=int, default=25041993)
     parser.add_argument('--prefix_len', type=int, default=10)
     parser.add_argument('--max_len', type=int, default=1024)
+    parser.add_argument('--start_from_generations', type=int, default=0)
     parser.add_argument('--max_num_generations', type=int, default=5000)
     parser.add_argument('--prompt_size', type=int, default=10)
     parser.add_argument('--top_p', type=float, default=1.0)
@@ -175,24 +176,26 @@ def get_model_basename(model_name):
     else:
         raise ValueError(f'Unknown model name {model_name}')
 
-def load_json_dataset(data_dir, dataset_name, split=None, max_num_data=np.inf):
+def load_json_dataset(data_dir, dataset_name, split=None, max_num_data=np.inf, start_from=0):
     if split is None:
         path = os.path.join(data_dir, f'{dataset_name}.jsonl')
     else:
         path = os.path.join(data_dir, f'{dataset_name}.{split}.jsonl')
     texts = []
     for i, line in enumerate(open(path)):
-        if i >= max_num_data:
+        if i < start_from:
+            continue
+        if i >= start_from + max_num_data:
             break
         texts.append(json.loads(line)['text'])
     return texts
 
-def load_and_tokenize_data(tokenizer, data_dir, max_len, max_num_data, min_len=None, ds_name=None, split='valid'):
-    assert max_len <= 1024 and max_num_data >= 2000, f"max_len={max_len}, max_num_data={max_num_data} are insufficent"
+def load_and_tokenize_data(tokenizer, data_dir, max_len, max_num_data, start_from=0, min_len=None, ds_name=None, split='valid'):
+    assert max_len <= 1024 and max_num_data >= 10, f"max_len={max_len}, max_num_data={max_num_data} are insufficent"
     t1 = time.time()
     if ds_name is None:
         ds_name = get_dataset_name_from_datapath(data_dir)
-    texts = load_json_dataset(data_dir, ds_name, split=split, max_num_data=max_num_data)
+    texts = load_json_dataset(data_dir, ds_name, split=split, max_num_data=max_num_data, start_from=start_from)
     t2 = time.time()
     print(f'dataset load time: {round(t2-t1, 2)}')
     t1 = time.time()

@@ -21,7 +21,7 @@ if __name__ == '__main__':
 
     # check if have to run
     save_directory = f'./outputs/{utils.get_dataset_name_from_datapath(args.data_dir)}_{utils.get_model_basename(args.model_name)}'
-    name = f'{args.datasplit}_p{args.top_p}_k{args.top_k}_t{args.temp}_seed{args.seed}'
+    name = f'{args.datasplit}_p{args.top_p}_k{args.top_k}_t{args.temp}_seed{args.seed}__start{args.start_from_generations}'
     folder_name = f'{save_directory}/generations/basic'
     if os.path.isfile(f'{folder_name}/feats_{name}.pt'):
         print(f'File: {folder_name}/feats_{name}.pt already exists. Exiting')
@@ -41,7 +41,8 @@ if __name__ == '__main__':
         args.max_len = tokenizer.model_max_length
 
     ds_tokens = utils.load_and_tokenize_data(tokenizer, args.data_dir, args.max_len, args.max_num_generations,
-                                             min_len=args.prompt_size, split=args.datasplit)
+                                             start_from=args.start_from_generations, min_len=args.prompt_size,
+                                             split=args.datasplit)
 
     if os.path.isfile(f'{folder_name}/sample_{name}.p'):
         print(f'Undecoded samples: {folder_name}/sample_{name}.p already exist. Skipping generation.')
@@ -82,24 +83,3 @@ if __name__ == '__main__':
         decoded_samples = utils.decode_samples_from_lst(tokenizer, samples)
         with open(f'{folder_name}/sentences_{name}.p', 'wb') as f:
             pkl.dump([decoded_samples, is_completed], f)
-
-    # featurize samples
-    print('Featurizing...')
-    feats_prefix = ''
-    if args.use_large_feats:
-        del model
-        model, _ = utils.get_model_and_tokenizer(model_name=args.featurize_model_name, device=device)
-        for l in {128, 256, 512, args.max_len}:
-            feats_prefix = f'L{l}'
-            feats_out_fn = f'{folder_name}/feats{feats_prefix}_{name}.pt'
-            if os.path.isfile(feats_out_fn):
-                print(f'Feats {feats_out_fn} exisits. Skipping')
-                continue
-            else:
-                print(f'Featurizing l = {l}...')
-                samples_3 = [x[:, :l] for x in samples_2]
-                feats = src.model_utils.featurize_sequential(model, samples_3)
-                torch.save(feats, feats_out_fn)
-    else:  # use features from model
-        feats = src.model_utils.featurize_sequential(model, samples_2)
-        torch.save(feats, f'{folder_name}/feats_{name}.pt')
