@@ -406,8 +406,9 @@ def get_default_batch_size(model_name, device, beam_size=1):
         if torch.cuda.device_count() > 1:
             bsz *= torch.cuda.device_count()
 
+        memory_gbs = mem * 12 / twelve_gigs
         print('Using a batch size of %d' % bsz)
-        print('Running on %d GPUs: %s' % (torch.cuda.device_count(), torch.cuda.get_device_name(0)))
+        print('Running on %d GPUs: %s (%.2f GB)' % (torch.cuda.device_count(), torch.cuda.get_device_name(0), memory_gbs))
 
     return bsz
 
