@@ -23,11 +23,11 @@ if __name__ == '__main__':
     save_directory = f'./outputs/{utils.get_dataset_name_from_datapath(args.data_dir)}_{utils.get_model_basename(args.model_name)}'
     name = f'{args.datasplit}_p{args.top_p}_k{args.top_k}_t{args.temp}_seed{args.seed}__start{args.start_from_generations:06}'
     folder_name = f'{save_directory}/generations/basic'
-    if os.path.isfile(f'{folder_name}/feats_{name}.pt'):
-        print(f'File: {folder_name}/feats_{name}.pt already exists. Exiting')
+    if os.path.isfile(f'{folder_name}/sentences_{name}.p'):
+        print(f'File: {folder_name}/sentences_{name}.p already exists. Exiting')
         sys.exit(-1)
     else:
-        print(f'File: {folder_name}/feats_{name}.pt does not exist. Proceeding with generation')
+        print(f'File: {folder_name}/sentences_{name}.p does not exist. Proceeding with generation')
 
 
     device = utils.get_device_from_arg(args.device)
