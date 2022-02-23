@@ -22,6 +22,7 @@ if __name__ == '__main__':
     # Get list of files with text samples
     fnames_re = f'{folder_name}/sentences_{name}.p'
     fnames = sorted(glob.glob(fnames_re))
+    assert len(fnames) > 0, 'There are no samples!!'
 
     name_hash = hashlib.sha1(str.encode(name))
     start_idx = int(name_hash.hexdigest(), 16) % 337735
@@ -61,3 +62,7 @@ if __name__ == '__main__':
     fname = f'outputs/{name}.{args.datasplit}.jsonl'
     with open(fname, 'w') as fp:
         fp.write('\n'.join(json.dumps(x) for x in results))
+
+    print('Merged %d samples for partition %s in model %s p%.2f' %
+          (len(results), args.datasplit, args.model_name, args.top_p))
+    print()
