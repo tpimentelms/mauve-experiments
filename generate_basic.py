@@ -25,7 +25,7 @@ if __name__ == '__main__':
     folder_name = f'{save_directory}/generations/basic'
     if os.path.isfile(f'{folder_name}/sentences_{name}.p'):
         print(f'File: {folder_name}/sentences_{name}.p already exists. Exiting')
-        sys.exit(-1)
+        sys.exit(0)
     else:
         print(f'File: {folder_name}/sentences_{name}.p does not exist. Proceeding with generation')
 
