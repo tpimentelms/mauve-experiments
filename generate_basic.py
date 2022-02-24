@@ -83,3 +83,7 @@ if __name__ == '__main__':
         decoded_samples = utils.decode_samples_from_lst(tokenizer, samples)
         with open(f'{folder_name}/sentences_{name}.p', 'wb') as f:
             pkl.dump([decoded_samples, is_completed], f)
+
+    print('Finished decoding.')
+    sys.exit(0)
+
