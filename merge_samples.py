@@ -5,8 +5,46 @@ import time
 import torch
 import hashlib
 import json
+import numpy as np
 
+import src.metrics
 from src import utils
+
+
+def merge_results(loaded_sentences, loaded_samples):
+    merged_sentences, merged_samples = {}, {}
+
+
+    merged_sentences['sentences'] = [sentence for file in loaded_sentences for sentence in file['sentences']]
+    merged_sentences['is_completed'] = [sentence for file in loaded_sentences for sentence in file['is_completed']]
+
+    merged_samples['samples'] = [sentence for file in loaded_samples for sentence in file['samples']]
+    merged_samples['is_completed'] = [sentence for file in loaded_samples for sentence in file['is_completed']]
+
+    n_lst = [1, 2, 3, 4, 5, 6]
+    merged_samples['unique_ngram_frac'] = src.metrics.get_unique_ngram_fraction(merged_samples['samples'], n_lst)
+
+    ppls = np.array([file['ppl'] for file in loaded_samples])
+    merged_samples['ppl'] = np.exp(np.log(ppls).mean()).item()
+
+    args = loaded_samples[0]['args']
+    del args.start_from_generations
+    merged_samples['args'] = args
+
+    return merged_sentences, merged_samples
+
+
+def merge_and_save_results(loaded_sentences, loaded_samples, args):
+    merged_sentences, merged_samples = merge_results(loaded_sentences, loaded_samples)
+
+    name = f'{args.datasplit}_p{args.top_p}_k{args.top_k}_t{args.temp}_seed{args.seed}'
+    sentences_fname = f'{folder_name}/sentences_{name}.p'
+    with open(sentences_fname, 'wb') as f:
+        pickle.dump([merged_sentences['sentences'], merged_sentences['is_completed']], f)
+
+    sentences_fname = f'{folder_name}/sample_{name}.p'
+    with open(sentences_fname, 'wb') as f:
+        pickle.dump([merged_samples['samples'], merged_samples['is_completed'], merged_samples['unique_ngram_frac'], merged_samples['ppl'], merged_samples['args']], f)
 
 
 if __name__ == '__main__':
@@ -28,7 +66,9 @@ if __name__ == '__main__':
     start_idx = int(name_hash.hexdigest(), 16) % 337735
 
     # Merge sentences
-    results = []
+    results_json = []
+    loaded_samples = []
+    loaded_sentences = []
     for fname in fnames:
         with open(fname, 'rb') as f:
             sentences, is_completed = pickle.load(f)
@@ -47,9 +87,19 @@ if __name__ == '__main__':
 
         # Convert to list of dictionaries
         sample_info = [dict(zip(sample_info, t)) for t in zip(*sample_info.values())]
-        results += sample_info
+        results_json += sample_info
+
+        loaded_sentences += [
+            {'sentences': sentences, 'is_completed': is_completed}
+        ]
+        loaded_samples += [
+            {'samples': samples, 'is_completed': is_completed,
+            'unique_ngram_frac': unique_ngram_frac, 'ppl': ppl, 'args': args}
+        ]
 
         start_idx = start_idx + len(sentences)
+
+    merge_and_save_results(loaded_sentences, loaded_samples, args)
 
     MODEL_NAMES = {
         'gpt2-xl': 'xl-1542M',
@@ -61,8 +111,8 @@ if __name__ == '__main__':
     name = f'{MODEL_NAMES[args.model_name]}-p{args.top_p}'
     fname = f'outputs/{name}.{args.datasplit}.jsonl'
     with open(fname, 'w') as fp:
-        fp.write('\n'.join(json.dumps(x) for x in results))
+        fp.write('\n'.join(json.dumps(x) for x in results_json))
 
     print('Merged %d samples for partition %s in model %s p%.2f' %
-          (len(results), args.datasplit, args.model_name, args.top_p))
+          (len(results_json), args.datasplit, args.model_name, args.top_p))
     print()
