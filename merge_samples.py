@@ -109,7 +109,7 @@ if __name__ == '__main__':
     }
 
     name = f'{MODEL_NAMES[args.model_name]}-p{args.top_p}'
-    fname = f'outputs/{name}.{args.datasplit}.jsonl'
+    fname = f'outputs/seed_{args.seed}/{name}.{args.datasplit}.jsonl'
     with open(fname, 'w') as fp:
         fp.write('\n'.join(json.dumps(x) for x in results_json))
 
