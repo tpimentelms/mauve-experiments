@@ -10,6 +10,7 @@ import src.metrics
 
 if __name__ == '__main__':
     parser = utils.make_basic_parser()
+    parser.add_argument('--get_features', action='store_true')
     args = parser.parse_args()
     print(args)
     torch.manual_seed(args.seed)
@@ -23,11 +24,17 @@ if __name__ == '__main__':
     save_directory = f'./outputs/{utils.get_dataset_name_from_datapath(args.data_dir)}_{utils.get_model_basename(args.model_name)}'
     name = f'{args.datasplit}_p{args.top_p}_k{args.top_k}_t{args.temp}_seed{args.seed}__start{args.start_from_generations:06}'
     folder_name = f'{save_directory}/generations/basic'
-    if os.path.isfile(f'{folder_name}/sentences_{name}.p'):
-        print(f'File: {folder_name}/sentences_{name}.p already exists. Exiting')
+
+    if args.get_features:
+        tgt_file = f'{folder_name}/featsL1024_{name}.pt'
+    else:
+        tgt_file = f'{folder_name}/sentences_{name}.p'
+
+    if os.path.isfile(tgt_file):
+        print(f'File: {tgt_file} already exists. Exiting')
         sys.exit(0)
     else:
-        print(f'File: {folder_name}/sentences_{name}.p does not exist. Proceeding with generation')
+        print(f'File: {tgt_file} does not exist. Proceeding with generation')
 
 
     device = utils.get_device_from_arg(args.device)
@@ -84,6 +91,24 @@ if __name__ == '__main__':
         with open(f'{folder_name}/sentences_{name}.p', 'wb') as f:
             pkl.dump([decoded_samples, is_completed], f)
 
+    if args.get_features:
+        # featurize samples
+        print('Featurizing...')
+        feats_prefix = ''
+
+        del model
+        model, _ = utils.get_model_and_tokenizer(model_name=args.featurize_model_name, device=device)
+        for l in {128, 256, 512, args.max_len}:
+            feats_prefix = f'L{l}'
+            feats_out_fn = f'{folder_name}/feats{feats_prefix}_{name}.pt'
+            if os.path.isfile(feats_out_fn):
+                print(f'Feats {feats_out_fn} exisits. Skipping')
+                continue
+            else:
+                print(f'Featurizing l = {l}...')
+                samples_3 = [x[:, :l] for x in samples_2]
+                feats = src.model_utils.featurize_sequential(model, samples_3)
+                torch.save(feats, feats_out_fn)
+
     print('Finished decoding.')
     sys.exit(0)
-
