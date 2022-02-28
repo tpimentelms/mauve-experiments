@@ -28,4 +28,4 @@ do
             python merge_samples.py --data_dir webtext --model ${model} --top_p ${top_p} --datasplit test --seed ${seed}
         done
     done
-do ne
+done
